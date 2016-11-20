@@ -1,0 +1,51 @@
+1. The condition of locked or crossed markets is closely related to a
+classic problem in distributed systems. Explain why it is impossible
+to completely avoid markets crossing.
+
+In order to fully answer this question, I need to give some background on how quote driven over the counter markets work with respect to the bid and ask price. In the market, there are buying and selling entities called "market makers". These market makers provide liquidity by ensuring that there is always a buyer or a seller for a given stock. They are required to provide a bid and ask price for that stock. The bid price is the price they would buy the stock at, the ask price is the price they would sell the stock at. The difference between the bid and ask price is the spread. The spread is the margin the market maker takes as insurance against the risk of the transaction. 
+
+When a stock is traded frequently, there are typically more market makers trading that stock and there is more volatility. Since there is a higher likelihood of the stock being bought or sold, the spread is typically smaller. This reflects the diminished less risk associated with these short term holds. When a stock is infrequently traded, there is a higher chance that the market maker will be forced to hold onto the stock, and therefore a higher risk. This is especially true given the information that can come out in the time they hold the stock. 
+
+This means there is a heightened chance of locked and crossed markets when trading volatile stocks. Not only is the spread narrower, but also there are more market makers trading the stock. These market makers all have their own trading systems running in different areas and at different speeds. These market makers may be operating on different information due to their speed differences. If there are multiple sales within a short time period, the quicker of the two may reduce their bid and ask prices before the second maker has a chance to catch up. As a result, the first market maker's ask may be below the second's bid, which results in a crossed market.
+
+
+2. Using the file aapl.data, compute the percentage of time the market was
+crossed or locked for AAPL on this trading day.
+
+This is implemented in the function "calcLockCrossTime". In this function, I iterated over all of the quotes in aapl.data. When the bid price was greater than or equal to the ask price I set a flag to indicate a crossed market. On the next quote, if the flag is true, then I added the difference of the current and last quote time to a time aggregation variable. After iterating over all the times, I find the total time by subtracting the initial time from the final time, then I divide the time aggregation by the total time and multiply by 100 to get the percentage. 
+
+It is worth noting that I assume when there is a locked/crossed market, it begins at the quote time where the lock/cross first appears and persists up until the moment that the market is uncrossed. I implemented it as beginning exclusive and end inclusive. 
+
+
+3. Using the file aapl.data, compute a histogram of the spread. Ignore
+spreads less than 1 cent and plot the histogram.
+
+This is implemented in the method "plotSpreadHist". In this method, I iterate over the quotes. On each iteration, I calculate the spread simply by subtracting the ask price by the bid price. I append the spread to the array of all spreads only if the spread is greater than or equal to a cent, since the question states that we can ignore <1 cent spreads. The spreads array is then passed to a function "showHistogram" which will use matplotlib to display the histogram. 
+
+The histogram gives a single value to the spread of each quote regardless of the number of shares or the time the spread persists in the system. The histogram shows the frequency of quotes having a given spread value. Alternatively, I could implement a histogram of frequency with respects to time instead of quote, so every millisecond the spread is in the system is another value. This would more accurately show how often a spread will occur over the course of a day. I could also possibly alter the histogram to reflect the number of shares at each spread. However, given the lack of information in the quotes, this would be less reliable. I don't know if a new quotes bid and ask shares are the same as the last quote's.
+
+It is worth noting that I initially changed the quote pricing data to dollars by converting to a float and dividing by 100. This resulted in "spikes" at regular intervals in the histogram though. I could not find what was causing this, so instead I change the trades to be in cents. This forces me to add some logic to the print statements in the other methods, but did not change the results I got for any other problem. Any help on this matter would be greatly appreciated.
+
+4. Using the file trades.txt and aapl.data, calculate the time and price of
+all executions that should have taken place.
+
+This is implemented in the function "calcValidTrades". For this function and the functions implemented for the next question, I create a list which combines quotes and trades and sorts by their timestamps. This allowed me to easily iterate over each value. To increase the speed, I might be able to use generators to sort the data into a single list when I first populate the system with information from both files. 
+
+I iterate over this combined object. If the list element is a trade, then I add it to the openOrders list, which is a list of all the trades that have yet to be filled. If the element is a quote, and the market isn't crossed or locked, then I iterate over the trades in the openOrders to check if the trade can be filled by the current quote. I could have sped this up by implementing a structure to sort by both price and time. My initial thoughts were a list of buckets that have a field for the price and store the trades sorted by timestamp in the bucket. This would have allowed me to check only a few elements each time. To acheive this, I could have checked the earliest elements from each list in the buckets with valid prices (above the ask for buys, below the bid for asks). I could have taken the earliest entered element from this new list, then added the second earliest from the same bucket and continued. This would be useful if the openOrders list became larger. Currently, the openOrders stays below 100, and the list requires no extra sorting. I did not think it was worth the extra space and implementation effort for a marginal gain. It would be looking into though.
+
+
+
+5. Suppose you are a dealer and start with 0 shares of Apple stock and must
+take the other side of orders in trades.txt that should cross in the market
+immediately upon order entry. Then, suppose you were given a maximum of 1
+minute to either buy or sell those shares to get back to 0, assuming that you
+can trade by crossing the spread.
+a) Calculate the maximum profit achievable in dollar terms.
+b) Calculate the maximum gross exposure.
+
+
+For this question, I iterated over the combined quotes and trades list. If the element is an instance of the Trade class, then I fill the trade, adding it to heldPositions. I also add it to allPositions, to keep track of all the positions that were filled. 
+
+If the element is an instance of Quote, I iterate over all of the positions in heldPositions. These are all the stocks that have not been closed, or that haven't expired (reached the minute mark). I check the current quote to see if a trade can be made that is more optimal than the current trades. If the position has not been closed out, then I greedily add the trades to the position object. If the position has been been closed out by trades, I check the trades that have been made to see if the current quote offers a more favorable trade. This is also done greedily.
+
+I don't think that this is "optimal". I implemented a version that sorted positions by the current value per share of the position. This is slightly more optimal, but much slower. The best option would be a graph based solution that used some sort of discrete derivative combined with post processing. This would take more memory and time, but could find a more optimal solution. I have not been able to implement this solution as of yet.

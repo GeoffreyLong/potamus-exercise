@@ -1,0 +1,94 @@
+
+-------------------------------------------------------------------------------
+-- Overview
+-------------------------------------------------------------------------------
+
+The file aapl.data (see below for format information) contains a list of
+quotes indicating the current interest in the stock AAPL over the
+course of a trading day. Each quote consists of 5 32-bit little-endian
+words. The 5 words of each tick are:
+
+ 0. Time in milliseconds since midnight ET
+ 1. Ask share count
+ 2. Ask price in cents
+ 3. Bid share count
+ 4. Bid price in cents
+
+For the purposes here, a quote is a change in the best asking price
+(offer to sell), a change in the best bid price (offer to buy), or a change
+in the number of shares at the best ask or bid price. This is known as the
+"national best bid and offer" (NBBO). For example, a series of NBBO quotes may
+look like:
+
+ 10:30am BID: 19000 @ 450.23  ASK: 1250 @ 450.24
+ 10:31am BID: 18800 @ 450.23  ASK: 1250 @ 450.24
+ 10:32am BID:   100 @ 450.23  ASK: 1250 @ 450.24
+ 10:33am BID:   500 @ 450.22  ASK: 1250 @ 450.24
+
+This means that at 10:30 there were 19,000 bid at $450.23, and 1250 shares
+offered at $450.24. At this time, the difference between the price buyers
+were willing to buy and the price sellers were willing to sell was one cent.
+This is called the "spread", and we say "the spread is one penny". Later, at
+10:31, there were 18,800 bid at the same price: this is because 200 shares
+were either sold or withdrawn from the bid. Later, at 10:32am the "bid-side
+quote" dwindled to 100 shares, and then at 10:33 the bid price dropped a
+penny (likely due to increased selling at $450.23), and the spread increased
+to 2 cents. In this way, we can track the advertised price and availability
+of AAPL over the course of the day using this data file.
+
+Sometimes, a market can become "locked" or "crossed" if the bid price is
+equal or greater than the ask price. For example:
+
+ 11:20am BID 1000 @ 451.50  ASK: 100 @ 451.50  **LOCKED MARKET**
+ 11:22am BID 1000 @ 451.51  ASK: 100 @ 451.50  **CROSSED MARKET**
+
+Exchanges try very hard to avoid locked or crossed markets, however, because
+there are many independent exchanges operating at the same time, markets do
+cross or lock from time to time.
+
+
+The second data file "trades.txt" contains a list of trades. Each trade
+contains the order entry time, side (buy or sell), number of shares, and a
+(limit) price. The times are expressed in unix epoch seconds. For example:
+
+ 1365104144 B 200 450.20
+
+means: "buy 200 shares of AAPL at $450.20". This order is eligible to execute
+if the buyer's "limit price" ($450.20) is greater-than or equal to the
+current asking price. The buyer's actual executed price may end up being
+lower, but never higher.
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------
+-- Questions to Answer
+-------------------------------------------------------------------------------
+
+1. The condition of locked or crossed markets is closely related to a
+classic problem in distributed systems. Explain why it is impossible
+to completely avoid markets crossing.
+
+2. Using the file aapl.data, compute the percentage of time the market was
+crossed or locked for AAPL on this trading day.
+
+3. Using the file aapl.data, compute a histogram of the spread. Ignore
+spreads less than 1 cent and plot the histogram.
+
+4. Using the file trades.txt and aapl.data, calculate the time and price of
+all executions that should have taken place.
+
+5. Suppose you are a dealer and start with 0 shares of Apple stock and must
+take the other side of orders in trades.txt that should cross in the market
+immediately upon order entry. Then, suppose you were given a maximum of 1
+minute to either buy or sell those shares to get back to 0, assuming that you
+can trade by crossing the spread.
+a) Calculate the maximum profit achievable in dollar terms.
+b) Calculate the maximum gross exposure.
